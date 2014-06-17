@@ -6,10 +6,16 @@ AllCops:
 Style/Documentation:
   Enabled: false
 
+Style/FrozenStringLiteralComment:
+  EnforcedStyle: always
+
 Metrics/BlockLength:
   Exclude:
     - "spec/**/*"
     - "*.gemspec"
 
-require:
-  - rubocop-rspec
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Layout/LineLength:
+  Max: 120
