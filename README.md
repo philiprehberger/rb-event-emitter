@@ -3,7 +3,7 @@
 [![Gem Version](https://badge.fury.io/rb/philiprehberger-event_emitter.svg)](https://badge.fury.io/rb/philiprehberger-event_emitter)
 [![CI](https://github.com/philiprehberger/rb-event-emitter/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-event-emitter/actions/workflows/ci.yml)
 
-Type-safe event emitter with sync and async listeners for Ruby. Thread-safe, zero dependencies.
+Type-safe event emitter with sync listeners for Ruby. Thread-safe, zero dependencies.
 
 ## Installation
 
@@ -63,6 +63,32 @@ service.on(:order_placed) { |order| puts "Order #{order[:id]} placed" }
 service.place_order({ id: 42 })
 ```
 
+### Error Handling
+
+By default, if a listener raises an exception, it propagates normally. Set an error handler to catch exceptions and allow remaining listeners to fire:
+
+```ruby
+emitter = Philiprehberger::EventEmitter.new
+
+emitter.on_error = ->(error) { puts "Listener error: #{error.message}" }
+
+emitter.on(:test) { raise "boom" }
+emitter.on(:test) { puts "still runs" }
+
+emitter.emit(:test)
+# => Listener error: boom
+# => still runs
+```
+
+### Max Listeners Warning
+
+A warning is printed when more than 10 listeners are added to a single event (possible memory leak). Configure the threshold:
+
+```ruby
+emitter.max_listeners = 20    # raise threshold
+emitter.max_listeners = nil   # disable warning
+```
+
 ### Removing listeners
 
 ```ruby
@@ -89,6 +115,10 @@ emitter.off(:message)
 | `off(event)` | Remove all listeners for an event |
 | `listeners(event)` | Return an array of listener blocks for an event |
 | `listener_count(event)` | Return the number of listeners for an event |
+| `remove_all_listeners(event = nil)` | Remove all listeners (optionally for a specific event) |
+| `event_names` | Return an array of registered event names |
+| `on_error=(handler)` | Set an error handler for listener exceptions |
+| `max_listeners=(n)` | Set max listener warning threshold (default: 10, nil to disable) |
 
 ## Development
 

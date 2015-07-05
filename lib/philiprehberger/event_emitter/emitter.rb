@@ -3,9 +3,15 @@
 module Philiprehberger
   module EventEmitter
     class Emitter
+      # Maximum listener count before emitting a warning. Set to `nil` to disable.
+      # @return [Integer, nil]
+      attr_accessor :max_listeners
+
       def initialize
         @listeners = {}
         @mutex = Mutex.new
+        @on_error = nil
+        @max_listeners = 10
       end
 
       # Register a sync listener for an event.
@@ -18,6 +24,7 @@ module Philiprehberger
 
         @mutex.synchronize do
           (@listeners[event] ||= []) << { block: block, once: false }
+          check_max_listeners(event)
         end
 
         self
@@ -90,6 +97,36 @@ module Philiprehberger
         end
       end
 
+      # Set an error handler for listener exceptions.
+      # When set, exceptions in listeners are caught and forwarded here,
+      # allowing remaining listeners to still execute.
+      # When nil (default), exceptions propagate normally.
+      #
+      # @param handler [Proc, nil] the error handler
+      attr_writer :on_error
+
+      # Remove all listeners, optionally for a specific event.
+      #
+      # @param event [Symbol, String, nil] if provided, remove only for that event
+      # @return [self]
+      def remove_all_listeners(event = nil)
+        @mutex.synchronize do
+          if event
+            @listeners.delete(event)
+          else
+            @listeners.clear
+          end
+        end
+        self
+      end
+
+      # List all registered event names.
+      #
+      # @return [Array<Symbol, String>]
+      def event_names
+        @mutex.synchronize { @listeners.keys }
+      end
+
       private
 
       def snapshot_and_prune(event)
@@ -105,12 +142,28 @@ module Philiprehberger
 
       def invoke_entries(entries, args, kwargs)
         entries.each do |entry|
-          if kwargs.empty?
-            entry[:block].call(*args)
-          else
-            entry[:block].call(*args, **kwargs)
-          end
+          invoke_single(entry, args, kwargs)
+        rescue StandardError => e
+          raise unless @on_error
+
+          @on_error.call(e)
         end
+      end
+
+      def invoke_single(entry, args, kwargs)
+        if kwargs.empty?
+          entry[:block].call(*args)
+        else
+          entry[:block].call(*args, **kwargs)
+        end
+      end
+
+      def check_max_listeners(event)
+        return unless @max_listeners
+        return unless @listeners[event].size > @max_listeners
+
+        warn "EventEmitter: #{@listeners[event].size} listeners added for #{event.inspect}, " \
+             "max is #{@max_listeners}. Possible memory leak."
       end
     end
   end
