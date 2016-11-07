@@ -2,8 +2,13 @@
 
 [![Gem Version](https://badge.fury.io/rb/philiprehberger-event_emitter.svg)](https://badge.fury.io/rb/philiprehberger-event_emitter)
 [![CI](https://github.com/philiprehberger/rb-event-emitter/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-event-emitter/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/philiprehberger/rb-event-emitter)](LICENSE)
 
 Type-safe event emitter with sync listeners for Ruby. Thread-safe, zero dependencies.
+
+## Requirements
+
+- Ruby >= 3.1
 
 ## Installation
 
