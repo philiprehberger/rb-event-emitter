@@ -5,7 +5,7 @@ require "spec_helper"
 RSpec.describe Philiprehberger::EventEmitter do
   describe "VERSION" do
     it "has a version number" do
-      expect(Philiprehberger::EventEmitter::VERSION).to eq("0.2.1")
+      expect(described_class::VERSION).not_to be_nil
     end
   end
 
