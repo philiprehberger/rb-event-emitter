@@ -14,7 +14,7 @@ module Philiprehberger
       # @param pattern [String] the pattern to check
       # @return [Boolean]
       def wildcard?(pattern)
-        pattern.is_a?(String) && (pattern.include?("*") || pattern.include?("**"))
+        pattern.is_a?(String) && pattern.include?("*")
       end
 
       # Match an event name against a glob-style pattern.
@@ -25,44 +25,42 @@ module Philiprehberger
       def match?(pattern, event_name)
         pattern_segments = pattern.to_s.split(".")
         event_segments = event_name.to_s.split(".")
-
-        do_match(pattern_segments, 0, event_segments, 0)
+        segments_match?(pattern_segments, 0, event_segments, 0)
       end
 
-      # @api private
-      def do_match(pattern_segs, pi, event_segs, ei)
-        # Both exhausted — match
-        return true if pi == pattern_segs.size && ei == event_segs.size
+      def segments_match?(pat, pat_idx, evt, evt_idx)
+        return true if pat_idx == pat.size && evt_idx == evt.size
+        return false if pat_idx == pat.size
 
-        # Pattern exhausted but event segments remain — no match
-        return false if pi == pattern_segs.size
-
-        seg = pattern_segs[pi]
-
-        if seg == "**"
-          # ** can match zero or more segments
-          # Try matching zero segments (skip **)
-          return true if do_match(pattern_segs, pi + 1, event_segs, ei)
-
-          # Try matching one or more segments (consume one event segment, keep **)
-          return false if ei == event_segs.size
-
-          do_match(pattern_segs, pi, event_segs, ei + 1)
-        elsif seg == "*"
-          # * matches exactly one segment
-          return false if ei == event_segs.size
-
-          do_match(pattern_segs, pi + 1, event_segs, ei + 1)
-        else
-          # Literal match
-          return false if ei == event_segs.size
-          return false unless seg == event_segs[ei]
-
-          do_match(pattern_segs, pi + 1, event_segs, ei + 1)
+        seg = pat[pat_idx]
+        case seg
+        when "**" then match_globstar?(pat, pat_idx, evt, evt_idx)
+        when "*" then match_star?(pat, pat_idx, evt, evt_idx)
+        else match_literal?(pat, pat_idx, evt, evt_idx, seg)
         end
       end
 
-      private_class_method :do_match
+      def match_globstar?(pat, pat_idx, evt, evt_idx)
+        return true if segments_match?(pat, pat_idx + 1, evt, evt_idx)
+        return false if evt_idx == evt.size
+
+        segments_match?(pat, pat_idx, evt, evt_idx + 1)
+      end
+
+      def match_star?(pat, pat_idx, evt, evt_idx)
+        return false if evt_idx == evt.size
+
+        segments_match?(pat, pat_idx + 1, evt, evt_idx + 1)
+      end
+
+      def match_literal?(pat, pat_idx, evt, evt_idx, seg)
+        return false if evt_idx == evt.size
+        return false unless seg == evt[evt_idx]
+
+        segments_match?(pat, pat_idx + 1, evt, evt_idx + 1)
+      end
+
+      private_class_method :segments_match?, :match_globstar?, :match_star?, :match_literal?
     end
   end
 end
