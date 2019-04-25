@@ -13,20 +13,15 @@ Gem::Specification.new do |spec|
                      "one-time listeners, and a convenient mixin module."
   spec.homepage = "https://github.com/philiprehberger/rb-event-emitter"
   spec.license = "MIT"
-  spec.required_ruby_version = ">= 3.1"
+  spec.required_ruby_version = ">= 3.1.0"
 
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = spec.homepage
   spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
   spec.metadata["rubygems_mfa_required"] = "true"
+  spec.metadata["bug_tracker_uri"] = "#{spec.homepage}/issues"
 
-  gemspec = File.basename(__FILE__)
-  spec.files = IO.popen(%w[git ls-files -z], chdir: __dir__, err: IO::NULL) do |ls|
-    ls.readlines("\x0", chomp: true).reject do |f|
-      (f == gemspec) ||
-        f.start_with?(*%w[spec/ .git .github Gemfile Rakefile .rubocop])
-    end
-  end
+  spec.files = Dir["lib/**/*.rb", "LICENSE", "README.md", "CHANGELOG.md"]
 
   spec.require_paths = ["lib"]
 end
