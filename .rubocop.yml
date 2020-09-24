@@ -22,3 +22,6 @@ Naming/PredicateMethod:
 
 Layout/LineLength:
   Max: 120
+
+Layout/EndOfLine:
+  Enabled: false
