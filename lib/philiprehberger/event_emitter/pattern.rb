@@ -14,7 +14,7 @@ module Philiprehberger
       # @param pattern [String] the pattern to check
       # @return [Boolean]
       def wildcard?(pattern)
-        pattern.is_a?(String) && pattern.include?("*")
+        pattern.is_a?(String) && pattern.include?('*')
       end
 
       # Match an event name against a glob-style pattern.
@@ -23,8 +23,8 @@ module Philiprehberger
       # @param event_name [String] the actual event name (e.g. "user.created")
       # @return [Boolean]
       def match?(pattern, event_name)
-        pattern_segments = pattern.to_s.split(".")
-        event_segments = event_name.to_s.split(".")
+        pattern_segments = pattern.to_s.split('.')
+        event_segments = event_name.to_s.split('.')
         segments_match?(pattern_segments, 0, event_segments, 0)
       end
 
@@ -34,8 +34,8 @@ module Philiprehberger
 
         seg = pat[pat_idx]
         case seg
-        when "**" then match_globstar?(pat, pat_idx, evt, evt_idx)
-        when "*" then match_star?(pat, pat_idx, evt, evt_idx)
+        when '**' then match_globstar?(pat, pat_idx, evt, evt_idx)
+        when '*' then match_star?(pat, pat_idx, evt, evt_idx)
         else match_literal?(pat, pat_idx, evt, evt_idx, seg)
         end
       end

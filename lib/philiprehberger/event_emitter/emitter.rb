@@ -21,7 +21,7 @@ module Philiprehberger
       end
 
       def on(event, priority: 0, replay: false, metadata: false, &block)
-        raise ArgumentError, "block required" unless block
+        raise ArgumentError, 'block required' unless block
 
         entry = { block: block, once: false, priority: priority, metadata: metadata }
         register_listener(event, entry)
@@ -30,7 +30,7 @@ module Philiprehberger
       end
 
       def once(event, priority: 0, replay: false, metadata: false, &block)
-        raise ArgumentError, "block required" unless block
+        raise ArgumentError, 'block required' unless block
 
         entry = { block: block, once: true, priority: priority, metadata: metadata }
         register_listener(event, entry, check_max: false)

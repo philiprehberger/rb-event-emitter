@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-require_relative "event_emitter/version"
-require_relative "event_emitter/pattern"
-require_relative "event_emitter/metadata"
-require_relative "event_emitter/listener_store"
-require_relative "event_emitter/invoker"
-require_relative "event_emitter/history"
-require_relative "event_emitter/emitter"
+require_relative 'event_emitter/version'
+require_relative 'event_emitter/pattern'
+require_relative 'event_emitter/metadata'
+require_relative 'event_emitter/listener_store'
+require_relative 'event_emitter/invoker'
+require_relative 'event_emitter/history'
+require_relative 'event_emitter/emitter'
 
 module Philiprehberger
   module EventEmitter
