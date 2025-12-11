@@ -59,6 +59,28 @@ module Philiprehberger
         spawn_listener_threads(all_entries, args, kwargs, event, meta)
       end
 
+      def wait(event, timeout: nil)
+        mutex = Mutex.new
+        cond = ConditionVariable.new
+        payload = nil
+        fired = false
+        handler = lambda do |*args, **_kwargs|
+          mutex.synchronize do
+            next if fired
+
+            payload = args
+            fired = true
+            cond.signal
+          end
+        end
+        once(event, &handler)
+        mutex.synchronize { cond.wait(mutex, timeout) unless fired }
+        return payload if fired
+
+        off(event, &handler)
+        nil
+      end
+
       def off(event, &block)
         @mutex.synchronize do
           if Pattern.wildcard?(event.to_s)
