@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
 
   spec.summary = "Type-safe event emitter with sync and async listeners"
   spec.description = "A thread-safe event emitter for Ruby with support for sync listeners, " \
-                     "one-time listeners, and a convenient mixin module."
+    "one-time listeners, and a convenient mixin module."
   spec.homepage = "https://github.com/philiprehberger/rb-event-emitter"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.1"
