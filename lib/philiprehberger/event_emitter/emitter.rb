@@ -45,30 +45,14 @@ module Philiprehberger
       # @param kwargs keyword arguments forwarded to listeners
       # @return [Boolean] true if any listeners were called
       def emit(event, *args, **kwargs)
-        entries = @mutex.synchronize do
-          return false unless @listeners.key?(event)
+        entries = snapshot_and_prune(event)
+        return false unless entries
 
-          current = @listeners[event].dup
-          @listeners[event].reject! { |entry| entry[:once] }
-          @listeners.delete(event) if @listeners[event].empty?
-          current
-        end
-
-        entries.each do |entry|
-          if kwargs.empty?
-            entry[:block].call(*args)
-          else
-            entry[:block].call(*args, **kwargs)
-          end
-        end
-
+        invoke_entries(entries, args, kwargs)
         true
       end
 
       # Remove a specific listener or all listeners for an event.
-      #
-      # When called with a block, removes that specific listener.
-      # When called without a block, removes all listeners for the event.
       #
       # @param event [Symbol, String] the event name
       # @yield (optional) the specific block to remove
@@ -77,7 +61,7 @@ module Philiprehberger
         @mutex.synchronize do
           if block
             @listeners[event]&.reject! { |entry| entry[:block] == block }
-            @listeners.delete(event) if @listeners[event]&.empty?
+            @listeners.delete(event) if @listeners[event]&.empty? # rubocop:disable Lint/SafeNavigationWithEmpty
           else
             @listeners.delete(event)
           end
@@ -103,6 +87,29 @@ module Philiprehberger
       def listener_count(event)
         @mutex.synchronize do
           (@listeners[event] || []).size
+        end
+      end
+
+      private
+
+      def snapshot_and_prune(event)
+        @mutex.synchronize do
+          return nil unless @listeners.key?(event)
+
+          current = @listeners[event].dup
+          @listeners[event].reject! { |entry| entry[:once] }
+          @listeners.delete(event) if @listeners[event].empty?
+          current
+        end
+      end
+
+      def invoke_entries(entries, args, kwargs)
+        entries.each do |entry|
+          if kwargs.empty?
+            entry[:block].call(*args)
+          else
+            entry[:block].call(*args, **kwargs)
+          end
         end
       end
     end
