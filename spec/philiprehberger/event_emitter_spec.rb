@@ -180,6 +180,79 @@ RSpec.describe Philiprehberger::EventEmitter do
       end
     end
 
+    describe "#remove_all_listeners" do
+      it "removes all listeners for a specific event" do
+        emitter.on(:test) { "a" }
+        emitter.on(:other) { "b" }
+        emitter.remove_all_listeners(:test)
+        expect(emitter.listener_count(:test)).to eq(0)
+        expect(emitter.listener_count(:other)).to eq(1)
+      end
+
+      it "removes all listeners across all events when no argument given" do
+        emitter.on(:test) { "a" }
+        emitter.on(:other) { "b" }
+        emitter.remove_all_listeners
+        expect(emitter.listener_count(:test)).to eq(0)
+        expect(emitter.listener_count(:other)).to eq(0)
+      end
+
+      it "returns self for chaining" do
+        expect(emitter.remove_all_listeners).to be(emitter)
+      end
+    end
+
+    describe "#event_names" do
+      it "returns registered event names" do
+        emitter.on(:foo) { "a" }
+        emitter.on(:bar) { "b" }
+        expect(emitter.event_names).to contain_exactly(:foo, :bar)
+      end
+
+      it "returns empty array when no listeners" do
+        expect(emitter.event_names).to eq([])
+      end
+    end
+
+    describe "#on_error" do
+      it "catches listener exceptions when error handler is set" do
+        errors = []
+        emitter.on_error = ->(e) { errors << e }
+
+        results = []
+        emitter.on(:test) { raise "boom" }
+        emitter.on(:test) { results << "after" }
+        emitter.emit(:test)
+
+        expect(errors.size).to eq(1)
+        expect(errors.first.message).to eq("boom")
+        expect(results).to eq(["after"])
+      end
+
+      it "propagates exceptions when no error handler is set" do
+        emitter.on(:test) { raise "boom" }
+        expect { emitter.emit(:test) }.to raise_error(RuntimeError, "boom")
+      end
+    end
+
+    describe "#max_listeners" do
+      it "defaults to 10" do
+        expect(emitter.max_listeners).to eq(10)
+      end
+
+      it "warns when listener count exceeds max" do
+        emitter.max_listeners = 2
+        emitter.on(:test) { "a" }
+        emitter.on(:test) { "b" }
+        expect { emitter.on(:test) { "c" } }.to output(/Possible memory leak/).to_stderr
+      end
+
+      it "does not warn when disabled" do
+        emitter.max_listeners = nil
+        expect { 20.times { emitter.on(:test) { "x" } } }.not_to output.to_stderr
+      end
+    end
+
     describe "thread safety" do
       it "handles concurrent registrations" do
         threads = 10.times.map do |i|
@@ -231,6 +304,17 @@ RSpec.describe Philiprehberger::EventEmitter do
       other = klass.new
       instance.on(:test) { "a" }
       expect(other.event_emitter.listener_count(:test)).to eq(0)
+    end
+
+    it "delegates remove_all_listeners" do
+      instance.on(:test) { "a" }
+      instance.remove_all_listeners
+      expect(instance.event_emitter.listener_count(:test)).to eq(0)
+    end
+
+    it "delegates event_names" do
+      instance.on(:foo) { "a" }
+      expect(instance.event_names).to eq([:foo])
     end
   end
 end

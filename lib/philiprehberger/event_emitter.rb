@@ -25,6 +25,8 @@ module Philiprehberger
       def once(...) = event_emitter.once(...)
       def emit(...) = event_emitter.emit(...)
       def off(...) = event_emitter.off(...)
+      def remove_all_listeners(...) = event_emitter.remove_all_listeners(...)
+      def event_names = event_emitter.event_names
     end
   end
 end
