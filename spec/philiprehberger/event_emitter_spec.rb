@@ -311,7 +311,10 @@ RSpec.describe Philiprehberger::EventEmitter do
       it "wildcard listeners receive event name as first argument" do
         received_event = nil
         received_data = nil
-        emitter.on("order.*") { |event_name, data| received_event = event_name; received_data = data }
+        emitter.on("order.*") do |event_name, data|
+          received_event = event_name
+          received_data = data
+        end
         emitter.emit("order.placed", { id: 42 })
         expect(received_event).to eq("order.placed")
         expect(received_data).to eq({ id: 42 })
@@ -501,10 +504,8 @@ RSpec.describe Philiprehberger::EventEmitter do
 
         received = []
         emitter.on("user.*", replay: true) { |event_name, data| received << [event_name, data] }
-        expect(received).to eq([
-          ["user.created", { id: 1 }],
-          ["user.deleted", { id: 2 }]
-        ])
+        expect(received).to eq([["user.created", { id: 1 }],
+                                ["user.deleted", { id: 2 }]])
       end
 
       it "replays with once and only fires replay" do
@@ -620,7 +621,7 @@ RSpec.describe Philiprehberger::EventEmitter do
 
       it "works with once and metadata" do
         received_meta = nil
-        emitter.once(:event, metadata: true) { |data, meta| received_meta = meta }
+        emitter.once(:event, metadata: true) { |_data, meta| received_meta = meta }
         emitter.emit(:event, "x")
         expect(received_meta).to be_a(Philiprehberger::EventEmitter::EventMetadata)
       end
@@ -638,7 +639,7 @@ RSpec.describe Philiprehberger::EventEmitter do
 
       it "metadata works with emit_async" do
         received_meta = nil
-        emitter.on(:event, metadata: true) { |data, meta| received_meta = meta }
+        emitter.on(:event, metadata: true) { |_data, meta| received_meta = meta }
         threads = emitter.emit_async(:event, "payload")
         threads.each(&:join)
         expect(received_meta).to be_a(Philiprehberger::EventEmitter::EventMetadata)

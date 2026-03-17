@@ -19,76 +19,30 @@ module Philiprehberger
       end
 
       # Register a sync listener for an event.
-      #
-      # @param event [Symbol, String] the event name or wildcard pattern
-      # @param priority [Integer] execution priority (higher runs first, default 0)
-      # @param replay [Boolean] replay matching historical events immediately
-      # @param metadata [Boolean] receive EventMetadata as extra argument
-      # @yield the block to call when the event is emitted
-      # @return [self]
       def on(event, priority: 0, replay: false, metadata: false, &block)
         raise ArgumentError, "block required" unless block
 
         entry = { block: block, once: false, priority: priority, metadata: metadata }
-
-        @mutex.synchronize do
-          if Pattern.wildcard?(event.to_s)
-            @wildcard_listeners << entry.merge(pattern: event.to_s)
-            @wildcard_listeners.sort_by! { |e| -e[:priority] }
-          else
-            (@listeners[event] ||= []) << entry
-            @listeners[event].sort_by! { |e| -e[:priority] }
-            check_max_listeners(event)
-          end
-        end
-
+        register_listener(event, entry)
         replay_history(event, entry) if replay
-
         self
       end
 
       # Register a listener that fires only once.
-      #
-      # @param event [Symbol, String] the event name or wildcard pattern
-      # @param priority [Integer] execution priority (higher runs first, default 0)
-      # @param replay [Boolean] replay matching historical events immediately
-      # @param metadata [Boolean] receive EventMetadata as extra argument
-      # @yield the block to call when the event is emitted
-      # @return [self]
       def once(event, priority: 0, replay: false, metadata: false, &block)
         raise ArgumentError, "block required" unless block
 
         entry = { block: block, once: true, priority: priority, metadata: metadata }
-
-        @mutex.synchronize do
-          if Pattern.wildcard?(event.to_s)
-            @wildcard_listeners << entry.merge(pattern: event.to_s)
-            @wildcard_listeners.sort_by! { |e| -e[:priority] }
-          else
-            (@listeners[event] ||= []) << entry
-            @listeners[event].sort_by! { |e| -e[:priority] }
-          end
-        end
-
+        register_listener(event, entry, check_max: false)
         replay_history(event, entry) if replay
-
         self
       end
 
-      # Emit an event, calling all registered listeners with the given arguments.
-      #
-      # @param event [Symbol, String] the event name
-      # @param args positional arguments forwarded to listeners
-      # @param kwargs keyword arguments forwarded to listeners
-      # @return [Boolean] true if any listeners were called
+      # Emit an event, calling all registered listeners.
       def emit(event, *args, **kwargs)
         timestamp = Time.now
         record_history(event, args, kwargs, timestamp)
-
-        entries = snapshot_and_prune(event)
-        wildcard_entries = snapshot_wildcard_matches(event)
-
-        all_entries = merge_by_priority(entries, wildcard_entries)
+        all_entries = collect_entries(event)
         return false if all_entries.empty?
 
         meta = EventMetadata.new(event_name: event, timestamp: timestamp)
@@ -97,61 +51,29 @@ module Philiprehberger
       end
 
       # Emit an event asynchronously. Each listener runs in its own Thread.
-      #
-      # @param event [Symbol, String] the event name
-      # @param args positional arguments forwarded to listeners
-      # @param kwargs keyword arguments forwarded to listeners
-      # @return [Array<Thread>] threads for optional joining
       def emit_async(event, *args, **kwargs)
         timestamp = Time.now
         record_history(event, args, kwargs, timestamp)
-
-        entries = snapshot_and_prune(event)
-        wildcard_entries = snapshot_wildcard_matches(event)
-
-        all_entries = merge_by_priority(entries, wildcard_entries)
+        all_entries = collect_entries(event)
         return [] if all_entries.empty?
 
         meta = EventMetadata.new(event_name: event, timestamp: timestamp)
-        all_entries.map do |entry|
-          Thread.new do
-            invoke_single(entry, args, kwargs, event, meta)
-          rescue StandardError => e
-            raise unless @on_error
-
-            @on_error.call(e)
-          end
-        end
+        spawn_listener_threads(all_entries, args, kwargs, event, meta)
       end
 
       # Remove a specific listener or all listeners for an event.
-      #
-      # @param event [Symbol, String] the event name
-      # @yield (optional) the specific block to remove
-      # @return [self]
       def off(event, &block)
         @mutex.synchronize do
           if Pattern.wildcard?(event.to_s)
-            if block
-              @wildcard_listeners.reject! { |entry| entry[:pattern] == event.to_s && entry[:block] == block }
-            else
-              @wildcard_listeners.reject! { |entry| entry[:pattern] == event.to_s }
-            end
-          elsif block
-            @listeners[event]&.reject! { |entry| entry[:block] == block }
-            @listeners.delete(event) if @listeners[event]&.empty? # rubocop:disable Lint/SafeNavigationWithEmpty
+            remove_wildcard_listener(event, block)
           else
-            @listeners.delete(event)
+            remove_exact_listener(event, block)
           end
         end
-
         self
       end
 
       # List all listener blocks for an event.
-      #
-      # @param event [Symbol, String] the event name
-      # @return [Array<Proc>] the registered listener blocks
       def listeners(event)
         @mutex.synchronize do
           (@listeners[event] || []).map { |entry| entry[:block] }
@@ -159,51 +81,57 @@ module Philiprehberger
       end
 
       # Count listeners for an event.
-      #
-      # @param event [Symbol, String] the event name
-      # @return [Integer]
       def listener_count(event)
-        @mutex.synchronize do
-          (@listeners[event] || []).size
-        end
+        @mutex.synchronize { (@listeners[event] || []).size }
       end
 
       # Set an error handler for listener exceptions.
-      # When set, exceptions in listeners are caught and forwarded here,
-      # allowing remaining listeners to still execute.
-      # When nil (default), exceptions propagate normally.
-      #
-      # @param handler [Proc, nil] the error handler
       attr_writer :on_error
 
       # Remove all listeners, optionally for a specific event.
-      #
-      # @param event [Symbol, String, nil] if provided, remove only for that event
-      # @return [self]
       def remove_all_listeners(event = nil)
         @mutex.synchronize do
-          if event
-            if Pattern.wildcard?(event.to_s)
-              @wildcard_listeners.reject! { |entry| entry[:pattern] == event.to_s }
-            else
-              @listeners.delete(event)
-            end
-          else
+          if event.nil?
             @listeners.clear
             @wildcard_listeners.clear
+          elsif Pattern.wildcard?(event.to_s)
+            @wildcard_listeners.reject! { |e| e[:pattern] == event.to_s }
+          else
+            @listeners.delete(event)
           end
         end
         self
       end
 
       # List all registered event names.
-      #
-      # @return [Array<Symbol, String>]
       def event_names
         @mutex.synchronize { @listeners.keys }
       end
 
       private
+
+      def register_listener(event, entry, check_max: true)
+        @mutex.synchronize do
+          if Pattern.wildcard?(event.to_s)
+            @wildcard_listeners << entry.merge(pattern: event.to_s)
+            sort_by_priority!(@wildcard_listeners)
+          else
+            (@listeners[event] ||= []) << entry
+            sort_by_priority!(@listeners[event])
+            check_max_listeners(event) if check_max
+          end
+        end
+      end
+
+      def sort_by_priority!(list)
+        list.sort_by! { |e| -e[:priority] }
+      end
+
+      def collect_entries(event)
+        entries = snapshot_and_prune(event)
+        wildcard_entries = snapshot_wildcard_matches(event)
+        merge_by_priority(entries, wildcard_entries)
+      end
 
       def snapshot_and_prune(event)
         @mutex.synchronize do
@@ -218,16 +146,14 @@ module Philiprehberger
 
       def snapshot_wildcard_matches(event)
         @mutex.synchronize do
-          matched = @wildcard_listeners.select { |entry| Pattern.match?(entry[:pattern], event.to_s) }
-          @wildcard_listeners.reject! { |entry| entry[:once] && Pattern.match?(entry[:pattern], event.to_s) }
-          matched.map { |entry| entry.merge(wildcard: true) }
+          matched = @wildcard_listeners.select { |e| Pattern.match?(e[:pattern], event.to_s) }
+          @wildcard_listeners.reject! { |e| e[:once] && Pattern.match?(e[:pattern], event.to_s) }
+          matched.map { |e| e.merge(wildcard: true) }
         end
       end
 
       def merge_by_priority(entries, wildcard_entries)
         all = (entries || []) + (wildcard_entries || [])
-        # Stable sort: sort by -priority, preserving insertion order within same priority
-        # Ruby's sort_by is stable in MRI, but to be safe we use sort_by with index
         all.each_with_index.sort_by { |entry, idx| [-entry[:priority], idx] }.map(&:first)
       end
 
@@ -238,6 +164,18 @@ module Philiprehberger
           raise unless @on_error
 
           @on_error.call(e)
+        end
+      end
+
+      def spawn_listener_threads(entries, args, kwargs, event, meta)
+        entries.map do |entry|
+          Thread.new do
+            invoke_single(entry, args, kwargs, event, meta)
+          rescue StandardError => e
+            raise unless @on_error
+
+            @on_error.call(e)
+          end
         end
       end
 
@@ -253,12 +191,27 @@ module Philiprehberger
 
       def build_call_args(entry, args, event, meta)
         call_args = []
-        # Wildcard listeners receive the actual event name as the first argument
         call_args << event if entry[:wildcard]
         call_args.concat(args)
-        # Metadata listeners receive an EventMetadata as the last positional argument
         call_args << meta if entry[:metadata]
         call_args
+      end
+
+      def remove_wildcard_listener(event, block)
+        if block
+          @wildcard_listeners.reject! { |e| e[:pattern] == event.to_s && e[:block] == block }
+        else
+          @wildcard_listeners.reject! { |e| e[:pattern] == event.to_s }
+        end
+      end
+
+      def remove_exact_listener(event, block)
+        if block
+          @listeners[event]&.reject! { |e| e[:block] == block }
+          @listeners.delete(event) if @listeners[event]&.empty? # rubocop:disable Lint/SafeNavigationWithEmpty
+        else
+          @listeners.delete(event)
+        end
       end
 
       def record_history(event, args, kwargs, timestamp)
@@ -271,18 +224,21 @@ module Philiprehberger
       end
 
       def replay_history(event, entry)
-        matching = @mutex.synchronize do
+        matching = find_matching_history(event)
+        matching.each do |record|
+          meta = EventMetadata.new(event_name: record[:event], timestamp: record[:timestamp])
+          replay_entry = entry.merge(wildcard: Pattern.wildcard?(event.to_s))
+          invoke_single(replay_entry, record[:args], record[:kwargs], record[:event], meta)
+        end
+      end
+
+      def find_matching_history(event)
+        @mutex.synchronize do
           if Pattern.wildcard?(event.to_s)
             @history.select { |h| Pattern.match?(event.to_s, h[:event].to_s) }
           else
             @history.select { |h| h[:event] == event }
           end
-        end
-
-        matching.each do |record|
-          meta = EventMetadata.new(event_name: record[:event], timestamp: record[:timestamp])
-          replay_entry = entry.merge(wildcard: Pattern.wildcard?(event.to_s))
-          invoke_single(replay_entry, record[:args], record[:kwargs], record[:event], meta)
         end
       end
 
