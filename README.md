@@ -4,7 +4,7 @@
 [![CI](https://github.com/philiprehberger/rb-event-emitter/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-event-emitter/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/philiprehberger/rb-event-emitter)](LICENSE)
 
-Type-safe event emitter with sync listeners for Ruby. Thread-safe, zero dependencies.
+Type-safe event emitter with sync and async listeners for Ruby. Thread-safe, zero dependencies. Supports wildcard matching, priorities, event history replay, and metadata.
 
 ## Requirements
 
@@ -94,6 +94,89 @@ emitter.max_listeners = 20    # raise threshold
 emitter.max_listeners = nil   # disable warning
 ```
 
+### Wildcard Event Matching
+
+Subscribe to multiple events using glob-style patterns. Segments are separated by `.`.
+
+```ruby
+emitter = Philiprehberger::EventEmitter.new
+
+# * matches exactly one segment
+emitter.on("user.*") do |event_name, data|
+  puts "#{event_name}: #{data}"
+end
+
+emitter.emit("user.created", { id: 1 })  # triggers wildcard listener
+emitter.emit("user.deleted", { id: 2 })  # also triggers it
+
+# ** matches any number of segments (including zero)
+emitter.on("app.**") do |event_name|
+  puts "App event: #{event_name}"
+end
+
+emitter.emit("app.user.profile.updated")  # triggers ** listener
+```
+
+Wildcard listeners receive the actual event name as the first argument, followed by the emitted data.
+
+### Listener Priorities
+
+Control the execution order of listeners with `priority:`. Higher values run first. Default priority is 0.
+
+```ruby
+emitter.on(:save, priority: 10) { puts "runs first (validation)" }
+emitter.on(:save, priority: 5)  { puts "runs second (transform)" }
+emitter.on(:save)               { puts "runs last (default priority 0)" }
+```
+
+Within the same priority, listeners execute in registration order (FIFO).
+
+### Event History & Replay
+
+Store recent events and let late-binding listeners replay them:
+
+```ruby
+emitter = Philiprehberger::EventEmitter.new(history_size: 50)
+emitter.emit(:init, { ready: true })
+
+# Later, a new listener can catch up on missed events
+emitter.on(:init, replay: true) { |data| puts data }
+# => { ready: true }  (fires immediately with the stored event)
+```
+
+- `history_size:` controls the maximum number of events stored (default: `0`, meaning disabled)
+- `replay: true` on `on()` or `once()` replays matching historical events immediately upon subscription
+
+### Async Emission
+
+Fire-and-forget listener execution in threads:
+
+```ruby
+emitter.on(:heavy_work) { |data| process(data) }
+
+threads = emitter.emit_async(:heavy_work, payload)
+# Each listener runs in its own Thread
+# Returns an array of Thread objects for optional joining
+threads.each(&:join)
+```
+
+The `on_error` handler catches exceptions from async listeners just as it does for sync ones.
+
+### Event Metadata
+
+Opt in to receive an `EventMetadata` object with event context:
+
+```ruby
+emitter.on(:order_placed, metadata: true) do |data, meta|
+  puts meta.event_name   # :order_placed
+  puts meta.timestamp     # Time when emitted
+end
+
+emitter.emit(:order_placed, { id: 42 })
+```
+
+Listeners without `metadata: true` are unaffected and receive only the emitted data.
+
 ### Removing listeners
 
 ```ruby
@@ -113,14 +196,14 @@ emitter.off(:message)
 
 | Method | Description |
 |---|---|
-| `on(event, &block)` | Register a sync listener for an event |
-| `once(event, &block)` | Register a listener that fires only once |
-| `emit(event, *args, **kwargs)` | Emit an event to all registered listeners |
-| `off(event, &block)` | Remove a specific listener |
-| `off(event)` | Remove all listeners for an event |
+| `on(event, priority: 0, replay: false, metadata: false, &block)` | Register a listener (supports wildcards, priorities, replay, metadata) |
+| `once(event, priority: 0, replay: false, metadata: false, &block)` | Register a one-time listener |
+| `emit(event, *args, **kwargs)` | Emit an event synchronously to all matching listeners |
+| `emit_async(event, *args, **kwargs)` | Emit an event asynchronously, each listener in its own Thread |
+| `off(event, &block)` | Remove a specific listener (or all for that event/pattern) |
 | `listeners(event)` | Return an array of listener blocks for an event |
 | `listener_count(event)` | Return the number of listeners for an event |
-| `remove_all_listeners(event = nil)` | Remove all listeners (optionally for a specific event) |
+| `remove_all_listeners(event = nil)` | Remove all listeners (optionally for a specific event/pattern) |
 | `event_names` | Return an array of registered event names |
 | `on_error=(handler)` | Set an error handler for listener exceptions |
 | `max_listeners=(n)` | Set max listener warning threshold (default: 10, nil to disable) |

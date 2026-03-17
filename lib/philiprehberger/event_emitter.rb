@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require_relative "event_emitter/version"
+require_relative "event_emitter/pattern"
+require_relative "event_emitter/metadata"
 require_relative "event_emitter/emitter"
 
 module Philiprehberger
@@ -10,8 +12,8 @@ module Philiprehberger
     # Convenience constructor.
     #
     # @return [Emitter]
-    def self.new
-      Emitter.new
+    def self.new(**kwargs)
+      Emitter.new(**kwargs)
     end
 
     # Mixin module — `include Philiprehberger::EventEmitter::Mixin`
@@ -24,6 +26,7 @@ module Philiprehberger
       def on(...) = event_emitter.on(...)
       def once(...) = event_emitter.once(...)
       def emit(...) = event_emitter.emit(...)
+      def emit_async(...) = event_emitter.emit_async(...)
       def off(...) = event_emitter.off(...)
       def remove_all_listeners(...) = event_emitter.remove_all_listeners(...)
       def event_names = event_emitter.event_names

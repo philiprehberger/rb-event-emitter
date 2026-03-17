@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0
+
+### Added
+
+- Wildcard event matching: `*` matches one segment, `**` matches any number of segments (e.g. `emitter.on("user.*")`)
+- Listener priorities: `on(:event, priority: 10)` — higher priority executes first, FIFO within same priority
+- Event history and replay: `Emitter.new(history_size: 50)` stores recent events; `on(:event, replay: true)` replays them
+- `emit_async`: fire-and-forget listener execution in threads, returns array of Thread objects
+- Event metadata: `on(:event, metadata: true)` passes `EventMetadata` with `event_name` and `timestamp` to listener
+
 ## 0.2.3
 
 - Fix CI: version test and rubocop compliance
