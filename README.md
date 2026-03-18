@@ -1,10 +1,10 @@
 # philiprehberger-event_emitter
 
-[![Gem Version](https://badge.fury.io/rb/philiprehberger-event_emitter.svg)](https://badge.fury.io/rb/philiprehberger-event_emitter)
-[![CI](https://github.com/philiprehberger/rb-event-emitter/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-event-emitter/actions/workflows/ci.yml)
+[![Tests](https://github.com/philiprehberger/rb-event-emitter/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-event-emitter/actions/workflows/ci.yml)
+[![Gem Version](https://badge.fury.io/rb/philiprehberger-event_emitter.svg)](https://rubygems.org/gems/philiprehberger-event_emitter)
 [![License](https://img.shields.io/github/license/philiprehberger/rb-event-emitter)](LICENSE)
 
-Type-safe event emitter with sync and async listeners for Ruby. Thread-safe, zero dependencies. Supports wildcard matching, priorities, event history replay, and metadata.
+Type-safe event emitter with sync/async listeners, wildcards, priorities, and history replay for Ruby
 
 ## Requirements
 
@@ -20,7 +20,7 @@ gem "philiprehberger-event_emitter"
 
 Or install directly:
 
-```sh
+```bash
 gem install philiprehberger-event_emitter
 ```
 
@@ -210,7 +210,7 @@ emitter.off(:message)
 
 ## Development
 
-```sh
+```bash
 bundle install
 bundle exec rspec       # Run tests
 bundle exec rubocop     # Run linter
@@ -219,4 +219,4 @@ bundle exec rake        # Run both
 
 ## License
 
-MIT - see [LICENSE](LICENSE).
+MIT
