@@ -212,9 +212,8 @@ emitter.off(:message)
 
 ```bash
 bundle install
-bundle exec rspec       # Run tests
-bundle exec rubocop     # Run linter
-bundle exec rake        # Run both
+bundle exec rspec
+bundle exec rubocop
 ```
 
 ## License
