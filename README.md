@@ -12,7 +12,7 @@ Type-safe event emitter with sync/async listeners, wildcards, priorities, and hi
 
 ## Installation
 
-Add this line to your application's Gemfile:
+Add to your Gemfile:
 
 ```ruby
 gem "philiprehberger-event_emitter"
