@@ -4,7 +4,7 @@
 [![Gem Version](https://badge.fury.io/rb/philiprehberger-event_emitter.svg)](https://rubygems.org/gems/philiprehberger-event_emitter)
 [![License](https://img.shields.io/github/license/philiprehberger/rb-event-emitter)](LICENSE)
 
-Type-safe event emitter with sync/async listeners, wildcards, priorities, and history replay for Ruby
+Type-safe event emitter with sync and async listeners
 
 ## Requirements
 
