@@ -3,6 +3,7 @@
 [![Tests](https://github.com/philiprehberger/rb-event-emitter/actions/workflows/ci.yml/badge.svg)](https://github.com/philiprehberger/rb-event-emitter/actions/workflows/ci.yml)
 [![Gem Version](https://badge.fury.io/rb/philiprehberger-event_emitter.svg)](https://rubygems.org/gems/philiprehberger-event_emitter)
 [![License](https://img.shields.io/github/license/philiprehberger/rb-event-emitter)](LICENSE)
+[![Sponsor](https://img.shields.io/badge/sponsor-GitHub%20Sponsors-ec6cb9)](https://github.com/sponsors/philiprehberger)
 
 Type-safe event emitter with sync and async listeners
 
@@ -218,4 +219,4 @@ bundle exec rubocop
 
 ## License
 
-MIT
+[MIT](LICENSE)
