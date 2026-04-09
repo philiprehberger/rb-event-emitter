@@ -788,4 +788,50 @@ RSpec.describe Philiprehberger::EventEmitter do
       expect(received).to eq('async_data')
     end
   end
+
+  describe Philiprehberger::EventEmitter::Emitter do
+    subject(:emitter) { described_class.new }
+
+    describe '#wait' do
+      it 'returns the args when the event fires from another thread' do
+        Thread.new do
+          sleep 0.01
+          emitter.emit(:ready, 'payload')
+        end
+        expect(emitter.wait(:ready)).to eq(['payload'])
+      end
+
+      it 'returns multiple positional args' do
+        Thread.new do
+          sleep 0.01
+          emitter.emit(:tick, 1, 2, 3)
+        end
+        expect(emitter.wait(:tick)).to eq([1, 2, 3])
+      end
+
+      it 'returns nil on timeout' do
+        expect(emitter.wait(:never, timeout: 0.05)).to be_nil
+      end
+
+      it 'removes the internal listener after timeout' do
+        emitter.wait(:never, timeout: 0.05)
+        expect(emitter.listener_count(:never)).to eq(0)
+      end
+
+      it 'unblocks multiple waiters on the same event' do
+        results = []
+        mutex = Mutex.new
+        threads = Array.new(3) do
+          Thread.new do
+            value = emitter.wait(:go)
+            mutex.synchronize { results << value }
+          end
+        end
+        sleep 0.01
+        emitter.emit(:go, 'value')
+        threads.each(&:join)
+        expect(results).to all(eq(['value']))
+      end
+    end
+  end
 end

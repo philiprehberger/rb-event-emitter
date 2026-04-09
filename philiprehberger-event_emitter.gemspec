@@ -9,8 +9,9 @@ Gem::Specification.new do |spec|
   spec.email = ['me@philiprehberger.com']
 
   spec.summary = 'Type-safe event emitter with sync and async listeners'
-  spec.description = 'A thread-safe event emitter for Ruby with support for sync listeners, ' \
-                     'one-time listeners, and a convenient mixin module.'
+  spec.description = 'A thread-safe event emitter for Ruby with sync and async listeners, ' \
+                     'wildcard event matching, listener priorities, event history with replay, ' \
+                     'event metadata, blocking wait, one-time listeners, and a mixin module.'
   spec.homepage = 'https://philiprehberger.com/open-source-packages/ruby/philiprehberger-event_emitter'
   spec.license = 'MIT'
   spec.required_ruby_version = '>= 3.1.0'

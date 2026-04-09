@@ -7,6 +7,14 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-09
+
+### Added
+- `Emitter#wait(event, timeout: nil)` — block the calling thread until an event fires; returns the positional args, or `nil` on timeout. The internal listener is cleaned up automatically on timeout.
+
+### Changed
+- Updated gemspec `description` to reflect the full feature set (async, wildcards, priorities, history, metadata, wait).
+
 ## [0.3.6] - 2026-03-31
 
 ### Added
@@ -90,4 +98,16 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - `Mixin` module for including event emitter capabilities in any class
 - Convenience `Philiprehberger::EventEmitter.new` constructor
 
+[0.4.0]: https://github.com/philiprehberger/rb-event-emitter/releases/tag/v0.4.0
+[0.3.6]: https://github.com/philiprehberger/rb-event-emitter/releases/tag/v0.3.6
+[0.3.5]: https://github.com/philiprehberger/rb-event-emitter/releases/tag/v0.3.5
+[0.3.4]: https://github.com/philiprehberger/rb-event-emitter/releases/tag/v0.3.4
+[0.3.3]: https://github.com/philiprehberger/rb-event-emitter/releases/tag/v0.3.3
+[0.3.2]: https://github.com/philiprehberger/rb-event-emitter/releases/tag/v0.3.2
+[0.3.1]: https://github.com/philiprehberger/rb-event-emitter/releases/tag/v0.3.1
+[0.3.0]: https://github.com/philiprehberger/rb-event-emitter/releases/tag/v0.3.0
+[0.2.3]: https://github.com/philiprehberger/rb-event-emitter/releases/tag/v0.2.3
+[0.2.2]: https://github.com/philiprehberger/rb-event-emitter/releases/tag/v0.2.2
+[0.2.1]: https://github.com/philiprehberger/rb-event-emitter/releases/tag/v0.2.1
+[0.2.0]: https://github.com/philiprehberger/rb-event-emitter/releases/tag/v0.2.0
 [0.1.0]: https://github.com/philiprehberger/rb-event-emitter/releases/tag/v0.1.0

@@ -177,6 +177,26 @@ emitter.emit(:order_placed, { id: 42 })
 
 Listeners without `metadata: true` are unaffected and receive only the emitted data.
 
+### Waiting for an event
+
+Block the calling thread until an event fires. Useful for tests, request/response patterns, and shutdown coordination.
+
+```ruby
+emitter = Philiprehberger::EventEmitter.new
+
+Thread.new do
+  sleep 0.1
+  emitter.emit(:ready, "payload")
+end
+
+args = emitter.wait(:ready)        # blocks until :ready is emitted
+# => ["payload"]
+
+emitter.wait(:never, timeout: 1)   # returns nil after 1 second
+```
+
+`wait` returns the array of positional args passed to `emit`, or `nil` on timeout. The internal listener is removed automatically on timeout, so it does not leak.
+
 ### Removing listeners
 
 ```ruby
@@ -200,6 +220,7 @@ emitter.off(:message)
 | `once(event, priority: 0, replay: false, metadata: false, &block)` | Register a one-time listener |
 | `emit(event, *args, **kwargs)` | Emit an event synchronously to all matching listeners |
 | `emit_async(event, *args, **kwargs)` | Emit an event asynchronously, each listener in its own Thread |
+| `wait(event, timeout: nil)` | Block until `event` fires; returns positional args, or `nil` on timeout |
 | `off(event, &block)` | Remove a specific listener (or all for that event/pattern) |
 | `listeners(event)` | Return an array of listener blocks for an event |
 | `listener_count(event)` | Return the number of listeners for an event |
