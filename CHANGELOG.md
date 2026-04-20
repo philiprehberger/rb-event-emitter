@@ -7,6 +7,11 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-04-20
+
+### Added
+- `Emitter#event_stats(event)` — diagnostic snapshot returning `{ listeners:, once_listeners:, wildcards:, max_listeners: }` for an event, folding in matching wildcard patterns.
+
 ## [0.4.0] - 2026-04-09
 
 ### Added
