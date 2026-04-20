@@ -224,6 +224,7 @@ emitter.off(:message)
 | `off(event, &block)` | Remove a specific listener (or all for that event/pattern) |
 | `listeners(event)` | Return an array of listener blocks for an event |
 | `listener_count(event)` | Return the number of listeners for an event |
+| `event_stats(event)` | Diagnostic snapshot: `{ listeners:, once_listeners:, wildcards:, max_listeners: }` |
 | `remove_all_listeners(event = nil)` | Remove all listeners (optionally for a specific event/pattern) |
 | `event_names` | Return an array of registered event names |
 | `on_error=(handler)` | Set an error handler for listener exceptions |

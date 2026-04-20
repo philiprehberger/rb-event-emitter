@@ -102,6 +102,25 @@ module Philiprehberger
         @mutex.synchronize { (@listeners[event] || []).size }
       end
 
+      # Summary of registered listeners for an event, including wildcard matches.
+      # Useful for diagnostics: counts exact vs. wildcard listeners, one-shot
+      # listeners, and compares against the configured ceiling.
+      #
+      # @param event [String, Symbol] the event name
+      # @return [Hash] :listeners, :once_listeners, :wildcards, :max_listeners
+      def event_stats(event)
+        @mutex.synchronize do
+          exact = @listeners[event] || []
+          wildcards = @wildcard_listeners.select { |e| Pattern.match?(e[:pattern], event.to_s) }
+          {
+            listeners: exact.size + wildcards.size,
+            once_listeners: exact.count { |e| e[:once] } + wildcards.count { |e| e[:once] },
+            wildcards: wildcards.size,
+            max_listeners: @max_listeners
+          }
+        end
+      end
+
       def remove_all_listeners(event = nil)
         @mutex.synchronize { clear_listeners(event) }
         self

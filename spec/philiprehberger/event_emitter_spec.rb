@@ -185,6 +185,34 @@ RSpec.describe Philiprehberger::EventEmitter do
       end
     end
 
+    describe '#event_stats' do
+      it 'returns zeros when no listeners are registered' do
+        stats = emitter.event_stats(:missing)
+        expect(stats[:listeners]).to eq(0)
+        expect(stats[:once_listeners]).to eq(0)
+        expect(stats[:wildcards]).to eq(0)
+        expect(stats[:max_listeners]).to eq(10)
+      end
+
+      it 'counts exact and once listeners separately' do
+        emitter.on(:test) { 'a' }
+        emitter.on(:test) { 'b' }
+        emitter.once(:test) { 'c' }
+        stats = emitter.event_stats(:test)
+        expect(stats[:listeners]).to eq(3)
+        expect(stats[:once_listeners]).to eq(1)
+        expect(stats[:wildcards]).to eq(0)
+      end
+
+      it 'includes matching wildcard listeners' do
+        emitter.on('user.*') { 'wild' }
+        emitter.on('user.created') { 'exact' }
+        stats = emitter.event_stats('user.created')
+        expect(stats[:listeners]).to eq(2)
+        expect(stats[:wildcards]).to eq(1)
+      end
+    end
+
     describe '#remove_all_listeners' do
       it 'removes all listeners for a specific event' do
         emitter.on(:test) { 'a' }
