@@ -7,6 +7,11 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-04-23
+
+### Added
+- `Emitter#wait_any(*events, timeout: nil)` — block the calling thread until any of the listed events fires; returns `[event_name, *args]` or `nil` on timeout. Temporary listeners registered on behalf of the wait are cleaned up automatically.
+
 ## [0.5.0] - 2026-04-20
 
 ### Added

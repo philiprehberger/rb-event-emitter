@@ -81,6 +81,42 @@ module Philiprehberger
         nil
       end
 
+      # Block the calling thread until any of the given events fires.
+      #
+      # Returns `[event_name, *args]` for the first event to fire, or `nil` on
+      # timeout. Temporary listeners registered on behalf of the wait are
+      # removed before returning.
+      #
+      # @param events [Array<Symbol,String>] the events to wait for
+      # @param timeout [Numeric, nil] maximum seconds to wait; nil to wait indefinitely
+      # @return [Array, nil] `[event, *args]` on first fire, `nil` on timeout
+      def wait_any(*events, timeout: nil)
+        mutex = Mutex.new
+        cond = ConditionVariable.new
+        fired_event = nil
+        fired_args = nil
+        handlers = {}
+
+        events.each do |event|
+          handler = lambda do |*args, **_kwargs|
+            mutex.synchronize do
+              next if fired_event
+
+              fired_event = event
+              fired_args = args
+              cond.signal
+            end
+          end
+          handlers[event] = handler
+          once(event, &handler)
+        end
+
+        mutex.synchronize { cond.wait(mutex, timeout) unless fired_event }
+
+        handlers.each { |event, handler| off(event, &handler) unless event == fired_event }
+        fired_event ? [fired_event, *fired_args] : nil
+      end
+
       def off(event, &block)
         @mutex.synchronize do
           if Pattern.wildcard?(event.to_s)

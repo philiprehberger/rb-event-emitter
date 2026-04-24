@@ -197,6 +197,23 @@ emitter.wait(:never, timeout: 1)   # returns nil after 1 second
 
 `wait` returns the array of positional args passed to `emit`, or `nil` on timeout. The internal listener is removed automatically on timeout, so it does not leak.
 
+### Waiting for one of several events
+
+```ruby
+emitter = Philiprehberger::EventEmitter.new
+
+Thread.new do
+  sleep 0.05
+  emitter.emit(:ready, "fast")
+end
+
+emitter.wait_any(:ready, :error, timeout: 1)
+# => [:ready, "fast"]
+
+emitter.wait_any(:never_a, :never_b, timeout: 0.1)
+# => nil
+```
+
 ### Removing listeners
 
 ```ruby
@@ -221,6 +238,7 @@ emitter.off(:message)
 | `emit(event, *args, **kwargs)` | Emit an event synchronously to all matching listeners |
 | `emit_async(event, *args, **kwargs)` | Emit an event asynchronously, each listener in its own Thread |
 | `wait(event, timeout: nil)` | Block until `event` fires; returns positional args, or `nil` on timeout |
+| `wait_any(*events, timeout: nil)` | Block until any listed event fires; returns `[event, *args]`, or `nil` on timeout |
 | `off(event, &block)` | Remove a specific listener (or all for that event/pattern) |
 | `listeners(event)` | Return an array of listener blocks for an event |
 | `listener_count(event)` | Return the number of listeners for an event |

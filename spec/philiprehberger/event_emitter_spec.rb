@@ -861,5 +861,50 @@ RSpec.describe Philiprehberger::EventEmitter do
         expect(results).to all(eq(['value']))
       end
     end
+
+    describe '#wait_any' do
+      it 'returns [event, *args] when any listed event fires' do
+        Thread.new do
+          sleep 0.01
+          emitter.emit(:ready, 'fast')
+        end
+        expect(emitter.wait_any(:ready, :error)).to eq([:ready, 'fast'])
+      end
+
+      it 'returns the first event to fire when multiple could fire' do
+        Thread.new do
+          sleep 0.01
+          emitter.emit(:error, 'slow')
+        end
+        expect(emitter.wait_any(:ready, :error)).to eq([:error, 'slow'])
+      end
+
+      it 'returns nil on timeout' do
+        expect(emitter.wait_any(:never_a, :never_b, timeout: 0.05)).to be_nil
+      end
+
+      it 'cleans up listeners on timeout' do
+        emitter.wait_any(:never_a, :never_b, timeout: 0.05)
+        expect(emitter.listener_count(:never_a)).to eq(0)
+        expect(emitter.listener_count(:never_b)).to eq(0)
+      end
+
+      it 'cleans up listeners for events that did not fire' do
+        Thread.new do
+          sleep 0.01
+          emitter.emit(:ready)
+        end
+        emitter.wait_any(:ready, :never)
+        expect(emitter.listener_count(:never)).to eq(0)
+      end
+
+      it 'forwards multiple positional args' do
+        Thread.new do
+          sleep 0.01
+          emitter.emit(:tick, 1, 2, 3)
+        end
+        expect(emitter.wait_any(:tick)).to eq([:tick, 1, 2, 3])
+      end
+    end
   end
 end
