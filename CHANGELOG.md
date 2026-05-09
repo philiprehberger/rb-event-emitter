@@ -7,6 +7,11 @@ and this gem adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-05-09
+
+### Added
+- `Emitter#wait_all(*events, timeout: nil)` — block the calling thread until every listed event has fired at least once; returns a `{event => first_fire_args}` hash, or `nil` on timeout. Records only the first-fire args per event and cleans up unfired listeners on timeout. Complements `#wait_any`.
+
 ## [0.6.0] - 2026-04-23
 
 ### Added

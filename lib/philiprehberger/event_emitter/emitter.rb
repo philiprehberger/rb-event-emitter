@@ -117,6 +117,51 @@ module Philiprehberger
         fired_event ? [fired_event, *fired_args] : nil
       end
 
+      # Block the calling thread until all of the given events have fired.
+      #
+      # Returns a Hash of `{event => args_array}` once every event has fired
+      # at least once, or `nil` on timeout. Each event records its first-fire
+      # arguments only. Temporary listeners registered on behalf of the wait
+      # are removed before returning.
+      #
+      # @param events [Array<Symbol,String>] events to wait for (must be non-empty)
+      # @param timeout [Numeric, nil] maximum seconds to wait; nil to wait indefinitely
+      # @return [Hash{Object=>Array}, nil] map of event name to first-fire args, or nil on timeout
+      def wait_all(*events, timeout: nil)
+        raise ArgumentError, 'at least one event is required' if events.empty?
+
+        mutex = Mutex.new
+        cond = ConditionVariable.new
+        results = {}
+        handlers = {}
+        deadline = timeout ? Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout : nil
+
+        events.each do |event|
+          handler = lambda do |*args, **_kwargs|
+            mutex.synchronize do
+              next if results.key?(event)
+
+              results[event] = args
+              cond.signal if results.size == events.size
+            end
+          end
+          handlers[event] = handler
+          once(event, &handler)
+        end
+
+        mutex.synchronize do
+          until results.size == events.size
+            remaining = deadline ? deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC) : nil
+            break if remaining && remaining <= 0
+
+            cond.wait(mutex, remaining)
+          end
+        end
+
+        events.each { |event| off(event, &handlers[event]) unless results.key?(event) }
+        results.size == events.size ? results : nil
+      end
+
       def off(event, &block)
         @mutex.synchronize do
           if Pattern.wildcard?(event.to_s)

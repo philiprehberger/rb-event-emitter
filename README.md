@@ -214,6 +214,25 @@ emitter.wait_any(:never_a, :never_b, timeout: 0.1)
 # => nil
 ```
 
+### Waiting for all of several events
+
+```ruby
+emitter = Philiprehberger::EventEmitter.new
+
+Thread.new do
+  sleep 0.01
+  emitter.emit(:db_ready)
+  emitter.emit(:cache_ready)
+end
+
+emitter.wait_all(:db_ready, :cache_ready, timeout: 1)
+# => { db_ready: [], cache_ready: [] }
+
+# Returns nil when not all events fire before timeout
+emitter.wait_all(:db_ready, :never, timeout: 0.05)
+# => nil
+```
+
 ### Removing listeners
 
 ```ruby
@@ -239,6 +258,7 @@ emitter.off(:message)
 | `emit_async(event, *args, **kwargs)` | Emit an event asynchronously, each listener in its own Thread |
 | `wait(event, timeout: nil)` | Block until `event` fires; returns positional args, or `nil` on timeout |
 | `wait_any(*events, timeout: nil)` | Block until any listed event fires; returns `[event, *args]`, or `nil` on timeout |
+| `wait_all(*events, timeout: nil)` | Block until every listed event has fired at least once; returns `{event => first_args}`, or `nil` on timeout |
 | `off(event, &block)` | Remove a specific listener (or all for that event/pattern) |
 | `listeners(event)` | Return an array of listener blocks for an event |
 | `listener_count(event)` | Return the number of listeners for an event |

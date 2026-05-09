@@ -906,5 +906,61 @@ RSpec.describe Philiprehberger::EventEmitter do
         expect(emitter.wait_any(:tick)).to eq([:tick, 1, 2, 3])
       end
     end
+
+    describe '#wait_all' do
+      it 'returns a hash of {event => args} once all events fire' do
+        Thread.new do
+          sleep 0.01
+          emitter.emit(:a, 1)
+          emitter.emit(:b, 'two')
+        end
+        expect(emitter.wait_all(:a, :b)).to eq(a: [1], b: ['two'])
+      end
+
+      it 'works regardless of fire order' do
+        Thread.new do
+          sleep 0.01
+          emitter.emit(:b, 'two')
+          emitter.emit(:a, 1)
+        end
+        expect(emitter.wait_all(:a, :b)).to eq(a: [1], b: ['two'])
+      end
+
+      it 'records only the first-fire args for each event' do
+        Thread.new do
+          sleep 0.01
+          emitter.emit(:a, 1)
+          emitter.emit(:a, 2)
+          emitter.emit(:b, 'x')
+        end
+        expect(emitter.wait_all(:a, :b)).to eq(a: [1], b: ['x'])
+      end
+
+      it 'returns nil on timeout when not all events fire' do
+        Thread.new do
+          sleep 0.01
+          emitter.emit(:a)
+        end
+        expect(emitter.wait_all(:a, :never, timeout: 0.05)).to be_nil
+      end
+
+      it 'cleans up listeners for events that did not fire on timeout' do
+        emitter.wait_all(:never_x, :never_y, timeout: 0.05)
+        expect(emitter.listener_count(:never_x)).to eq(0)
+        expect(emitter.listener_count(:never_y)).to eq(0)
+      end
+
+      it 'raises when given no events' do
+        expect { emitter.wait_all }.to raise_error(ArgumentError)
+      end
+
+      it 'returns immediately when only one event is given and it fires' do
+        Thread.new do
+          sleep 0.01
+          emitter.emit(:only)
+        end
+        expect(emitter.wait_all(:only)).to eq(only: [])
+      end
+    end
   end
 end
